@@ -165,6 +165,16 @@ legend{font-weight:800;font-size:13px;padding:0 6px}
 .toast[hidden]{display:none}
 .starter{background:var(--train-soft);border:0}
 .starter p{margin:0}
+.btn-finish{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;font-size:16px;border-radius:14px;width:100%}
+.btn-finish svg{width:20px;height:20px}
+.btn-finish small{font-size:13px;opacity:.8;font-weight:700}
+.finished{display:flex;align-items:center;gap:12px;padding:14px;background:var(--train-soft);border-color:transparent}
+.finished b{font-family:var(--display);font-size:17px;line-height:1.2;display:block;text-transform:uppercase;color:var(--train);font-weight:600}
+.finished .sub{font-size:13px;color:var(--muted)}
+.fin-icon{flex:none;width:44px;height:44px;border-radius:50%;background:var(--train);color:var(--on-accent);display:grid;place-items:center}
+.fin-icon svg{width:24px;height:24px}
+.pill-done{display:inline-flex;align-items:center;gap:4px;background:var(--train);color:var(--on-accent);font-size:12px;font-weight:800;padding:4px 9px 4px 6px;border-radius:99px;text-transform:uppercase;letter-spacing:.03em}
+.pill-done svg{width:14px;height:14px}
 @media (max-width:400px){header.top h1{font-size:20px}.stat .val{font-size:24px}.stat{padding:10px 12px}.lib{grid-template-columns:repeat(2,minmax(0,1fr))}.tile-card{min-height:96px}.seg button{font-size:14px;padding:10px 4px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -239,7 +249,8 @@ let db=null,assets=null,uid=null,refs=null,canUpload=false;
 
 const exById=id=>S.exercises.find(e=>e.id===id);
 const recById=id=>S.recipes.find(r=>r.id===id);
-const logFor=k=>{const l=S.logs[k]||{};return{ex:{...(l.ex||{})},meals:{...(l.meals||{})}};};
+const logFor=k=>{const l=S.logs[k]||{};const o={ex:{...(l.ex||{})},meals:{...(l.meals||{})}};if(typeof l.finished==="number")o.finished=l.finished;return o;};
+const hhmm=t=>{const d=new Date(t);return pad2(d.getHours())+":"+pad2(d.getMinutes());};
 
 /* ---------- saving: one write at a time per document ---------- */
 const Q={};
@@ -285,7 +296,9 @@ function viewToday(){
     <div class="card list">${ids.map(id=>{const e=exById(id),d=!!log.ex[id];const hasV=e.video||safeLink(e.link);
       return `<div class="item${d?" done":""}"><button class="chk" data-act="tog-ex" data-id="${h(id)}" aria-pressed="${d}" aria-label="Завршено: ${h(e.name)}">${ICON.check}</button>
       <button class="linkish grow" data-act="open-ex" data-id="${h(id)}"><div class="name">${h(e.name)}</div><div class="sub">${h(exSub(e))}</div></button>
-      ${e.video?`<button class="icon-btn play" data-act="open-ex" data-id="${h(id)}" aria-label="Пушти видео">${ICON.play}</button>`:safeLink(e.link)?`<a class="icon-btn play" href="${h(safeLink(e.link))}" target="_blank" rel="noopener noreferrer" aria-label="Отвори видео">${ICON.play}</a>`:""}</div>`;}).join("")}</div>`;
+      ${e.video?`<button class="icon-btn play" data-act="open-ex" data-id="${h(id)}" aria-label="Пушти видео">${ICON.play}</button>`:safeLink(e.link)?`<a class="icon-btn play" href="${h(safeLink(e.link))}" target="_blank" rel="noopener noreferrer" aria-label="Отвори видео">${ICON.play}</a>`:""}</div>`;}).join("")}</div>
+    ${log.finished?`<div class="card finished"><div class="fin-icon">${ICON.check}</div><div class="grow"><b>Тренингот е завршен</b><div class="sub">Завршен во ${hhmm(log.finished)} · ${doneN}/${ids.length} вежби</div></div><button class="btn" data-act="unfinish" style="flex:none;min-height:40px;padding:8px 12px">Врати</button></div>`
+     :`<button class="btn btn-primary btn-finish" data-act="finish">${ICON.check}<span>Заврши тренинг</span>${doneN<ids.length?`<small class="num">${doneN}/${ids.length}</small>`:""}</button>`}`;
 
   const meals=S.plan.meals[dk]||{};
   const slots=SLOTS.filter(([s])=>recById(meals[s]));
@@ -300,7 +313,7 @@ function viewToday(){
   const lastW=S.weights[S.weights.length-1];
   const todayW=S.weights.find(w=>w.id===tk);
   return `${starterCard()}
-  <section class="block"><div class="sec-head"><div><div class="kicker">Тренинг · ${dayName}</div><h2>${h(title||(S.plan.rest[dk]?"Одмор":"Денешен тренинг"))}</h2></div>${ids.length&&!S.plan.rest[dk]?`<span class="meta num">${doneN}/${ids.length} готово</span>`:""}</div>${train}</section>
+  <section class="block"><div class="sec-head"><div><div class="kicker">Тренинг · ${dayName}</div><h2>${h(title||(S.plan.rest[dk]?"Одмор":"Денешен тренинг"))}</h2></div>${ids.length&&!S.plan.rest[dk]?(log.finished?`<span class="pill-done">${ICON.check}Завршен</span>`:`<span class="meta num">${doneN}/${ids.length} готово</span>`):""}</div>${train}</section>
   <section class="block food"><div class="sec-head"><div><div class="kicker">Исхрана</div><h2>Оброци денес</h2></div>${slots.length?`<span class="meta num">${kTotal?kTotal+" kcal":""}${pTotal?" · "+pTotal+" г протеин":""}</span>`:""}</div>${food}</section>
   <section class="block"><div class="sec-head"><div><div class="kicker">Килажа</div><h2>Измери се</h2></div>${lastW?`<span class="meta num">последно ${kgFmt(lastW.kg)} kg · ${fmtShort(lastW.date)}</span>`:""}</div>
    <div class="card pad"><div class="inline"><div class="field"><label for="q-kg">Килажа денес (kg)</label><input id="q-kg" inputmode="decimal" placeholder="${lastW?kgFmt(lastW.kg):"на пр. 78,5"}" value="${todayW?kgFmt(todayW.kg):""}"></div><button class="btn btn-primary" data-act="q-weight">Зачувај</button></div></div></section>`;
@@ -394,10 +407,11 @@ function viewProgress(){
     const ids=S.plan.train[k].filter(exById),log=logFor(key),n=ids.filter(id=>log.ex[id]).length;
     let cls="",lbl=d.getDate();
     if(S.plan.rest[k]){cls="rest";}
-    else if(ids.length){planned++;if(n===ids.length){cls="full";trained++;}else if(n>0)cls="part";}
+    else if(ids.length){planned++;if(log.finished||n===ids.length){cls="full";trained++;}else if(n>0)cls="part";}
     if(key===todayKey())cls+=" now";
-    return `<div class="wk ${cls}" title="${DAYS[i][1]}: ${S.plan.rest[k]?"одмор":ids.length?n+"/"+ids.length+" вежби":"без план"}"><i class="num">${lbl}</i>${sh}</div>`;}).join("");
+    return `<div class="wk ${cls}" title="${DAYS[i][1]}: ${S.plan.rest[k]?"одмор":log.finished?"завршен":ids.length?n+"/"+ids.length+" вежби":"без план"}"><i class="num">${lbl}</i>${sh}</div>`;}).join("");
   const hist=[...ws].reverse();
+  const totalFin=Object.values(S.logs).filter(l=>l&&typeof l.finished==="number").length;
   return `<div class="stats">
    <div class="stat"><div class="lbl">Сегашна</div><div class="val num">${last?kgFmt(last.kg):"–"}<small>kg</small></div></div>
    <div class="stat"><div class="lbl">Од почеток</div><div class="val num ${diff<0?"down":diff>0?"up":""}">${diff==null?"–":(diff>0?"+":diff<0?"−":"")+kgFmt(Math.abs(diff))}<small>kg</small></div></div>
@@ -407,7 +421,7 @@ function viewProgress(){
   <section class="block"><div class="sec-head"><div><div class="kicker">Килажа</div><h2>Текот</h2></div>${first?`<span class="meta num">${ws.length} мерења од ${fmtShort(first.date)}</span>`:""}</div>
    <div class="card chart">${ws.length?chartSVG(ws,goal):`<div class="empty">Внеси ја првата килажа подолу и тука ќе се исцрта графиконот.</div>`}</div></section>
   <section class="block"><div class="sec-head"><div><div class="kicker">Оваа недела</div><h2>Тренинзи</h2></div><span class="meta num">${trained}/${planned} завршени</span></div>
-   <div class="card week">${week}</div><p class="note">Полно = сите вежби завршени · светло = делумно · испрекинато = одмор</p></section>
+   <div class="card week">${week}</div><p class="note">Полно = завршен тренинг · светло = делумно · испрекинато = одмор${totalFin?` · вкупно завршени тренинзи: <b class="num">${totalFin}</b>`:""}</p></section>
   <section class="block"><div class="sec-head"><h2>Ново мерење</h2></div>
    <div class="card pad"><div class="grid2"><div class="field"><label for="w-date">Датум</label><input id="w-date" type="date" value="${todayKey()}" max="${todayKey()}"></div><div class="field"><label for="w-kg">Килажа (kg)</label><input id="w-kg" inputmode="decimal" placeholder="на пр. 78,5"></div></div>
    <div class="field"><label for="w-note">Белешка (по избор)</label><input id="w-note" maxlength="80" placeholder="на пр. наутро, на празен стомак"></div>
@@ -683,6 +697,8 @@ document.addEventListener("click",ev=>{
     case "meal-day":UI.mealDay=+b.dataset.i;render();break;
     case "tog-ex":logToggle("ex",id);break;
     case "tog-meal":logToggle("meals",b.dataset.slot);break;
+    case "finish":{const tk=todayKey(),dk=DAYS[dayIdx()][0],l=logFor(tk);S.plan.train[dk].filter(exById).forEach(x=>l.ex[x]=true);l.finished=Date.now();S.logs[tk]=l;render();persist(refs&&refs.logs.doc(tk),l);toast("Браво! Тренингот е завршен");break;}
+    case "unfinish":{const tk=todayKey(),l=logFor(tk);delete l.finished;S.logs[tk]=l;render();persist(refs&&refs.logs.doc(tk),l);toast("Тренингот е вратен како незавршен");break;}
     case "open-ex":exDetail(id);break;
     case "new-ex":exForm(null);break;
     case "edit-ex":exForm(id);break;
