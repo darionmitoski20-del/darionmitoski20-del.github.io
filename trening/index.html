@@ -231,7 +231,7 @@ function normPlan(d){const p=emptyPlan();if(!d)return p;DAYS.forEach(([k])=>{
   if(d.title&&typeof d.title[k]==="string")p.title[k]=d.title[k];
   p.rest[k]=!!(d.rest&&d.rest[k]);
   if(d.meals&&d.meals[k]&&typeof d.meals[k]==="object")p.meals[k]={...d.meals[k]};
-});if(typeof d.goal==="number")p.goal=d.goal;return p;}
+});if(typeof d.goal==="number")p.goal=d.goal;if(typeof d.program==="string")p.program=d.program;return p;}
 
 const S={exercises:[],recipes:[],weights:[],plan:emptyPlan(),logs:{},loaded:false};
 const UI={tab:"today",trainView:"plan",foodView:"plan",planDay:dayIdx(),mealDay:dayIdx(),muscle:"",rcat:""};
@@ -267,8 +267,7 @@ function dayChips(sel,act,counter){
   return `<div class="days" role="group" aria-label="Ден во неделата">${DAYS.map(([k,full,sh],i)=>`<button class="day${i===ti?" today":""}" data-act="${act}" data-i="${i}" aria-pressed="${i===sel}" aria-label="${full}">${sh}<small>${h(counter(k))}</small></button>`).join("")}</div>`;
 }
 function starterCard(){
-  if(S.exercises.length||S.recipes.length)return "";
-  return `<div class="card starter pad"><div class="kicker">Брз почеток</div><p>Сè е празно. Вчитај примерен неделен план со 10 вежби и 5 рецепти, па измени го по своја мерка. Можеш и да почнеш од нула.</p><div class="btn-row"><button class="btn btn-primary" data-act="seed">Вчитај примерен план</button><button class="btn" data-act="go" data-tab="training" data-view="lib">Додај своја вежба</button></div></div>`;
+  return programCard()+(S.recipes.length?"":`<div class="card pad"><div class="kicker" style="color:var(--food)">Исхрана</div><p style="margin:0">Сè уште нема рецепти. Вчитај 5 примерни рецепти со план за јадење, или додај свои.</p><div class="btn-row"><button class="btn btn-food" data-act="seed">Вчитај примерни рецепти</button><button class="btn" data-act="go" data-tab="food" data-view="lib">Додај свој рецепт</button></div></div>`);
 }
 function exSub(e){const p=[];if(e.sets)p.push(e.sets+" × "+(e.reps||"?"));else if(e.reps)p.push(e.reps);if(e.muscle)p.push(e.muscle);if(+e.rest>0)p.push("одмор "+e.rest+" сек");return p.join(" · ");}
 
@@ -285,7 +284,7 @@ function viewToday(){
     <div class="card list">${ids.map(id=>{const e=exById(id),d=!!log.ex[id];const hasV=e.video||safeLink(e.link);
       return `<div class="item${d?" done":""}"><button class="chk" data-act="tog-ex" data-id="${h(id)}" aria-pressed="${d}" aria-label="Завршено: ${h(e.name)}">${ICON.check}</button>
       <button class="linkish grow" data-act="open-ex" data-id="${h(id)}"><div class="name">${h(e.name)}</div><div class="sub">${h(exSub(e))}</div></button>
-      ${hasV?`<button class="icon-btn play" data-act="open-ex" data-id="${h(id)}" aria-label="Пушти видео">${ICON.play}</button>`:""}</div>`;}).join("")}</div>`;
+      ${e.video?`<button class="icon-btn play" data-act="open-ex" data-id="${h(id)}" aria-label="Пушти видео">${ICON.play}</button>`:safeLink(e.link)?`<a class="icon-btn play" href="${h(safeLink(e.link))}" target="_blank" rel="noopener noreferrer" aria-label="Отвори видео">${ICON.play}</a>`:""}</div>`;}).join("")}</div>`;
 
   const meals=S.plan.meals[dk]||{};
   const slots=SLOTS.filter(([s])=>recById(meals[s]));
@@ -319,7 +318,7 @@ function viewTraining(){
   const i=UI.planDay,[dk,full]=DAYS[i];
   const ids=S.plan.train[dk].filter(exById);
   const avail=S.exercises.filter(e=>!ids.includes(e.id)).sort((a,b)=>a.name.localeCompare(b.name,"mk"));
-  return `${seg}${dayChips(i,"plan-day",k=>S.plan.rest[k]?"одмор":(S.plan.train[k].filter(exById).length||"–"))}
+  return `${seg}${programCard()}${dayChips(i,"plan-day",k=>S.plan.rest[k]?"одмор":(S.plan.train[k].filter(exById).length||"–"))}
   <div class="card pad">
     <div class="sec-head"><h2>${full}</h2><label class="toggle" for="plan-rest"><input type="checkbox" id="plan-rest" data-change="plan-rest" ${S.plan.rest[dk]?"checked":""}>Ден за одмор</label></div>
     <div class="field"><label for="plan-title">Име на тренингот</label><input id="plan-title" data-change="plan-title" maxlength="40" placeholder="на пр. Гради и рамо" value="${h(S.plan.title[dk])}"></div>
@@ -541,19 +540,6 @@ async function submitRecipe(form){
 
 /* ---------- starter data ---------- */
 function seed(){
-  const ex=[
-   ["Склекови","Гради","3","12","60","Телото е права линија, градите речиси до подот."],
-   ["Потиснување со шипка на клупа","Гради","4","8","90","Лопатките стегнати, шипката се спушта до средината на градите."],
-   ["Рамен потисок со дамбели","Рамо","3","10","75","Седечки, не го извивај грбот."],
-   ["Згибови","Грб","4","6","90","Целосно истегнување долу, брадата над шипката."],
-   ["Веслање со дамбел","Грб","3","10","60","Лактот оди назад кон колкот."],
-   ["Свиткување за бицепс","Раце","3","12","60","Лактите мирни до телото."],
-   ["Чучњеви","Нозе","4","10","90","Петиците на подот, колковите назад."],
-   ["Искорак","Нозе","3","12","60","По 12 за секоја нога."],
-   ["Планк","Стомак","3","45 сек","45","Стомакот и задникот стегнати."],
-   ["Трчање","Кардио","1","20 мин","0","Темпо на кое можеш да зборуваш."]
-  ].map(([name,muscle,sets,reps,rest,notes],i)=>({id:"ex"+(i+1)+newId(),name,muscle,sets,reps,rest,notes,link:"",video:null,createdAt:Date.now()+i}));
-  const E=i=>ex[i].id;
   const rec=[
    {name:"Овесна каша со банана",cat:"Појадок",time:"10",kcal:"380",protein:"14",servings:"1",ingredients:"60 г овесни снегулки\n250 мл млеко\n1 банана\n1 лажичка мед\nцимет по вкус",steps:"Стави ги снегулките и млекото во тенџере.\nВари 4–5 минути на тивок оган со мешање.\nДодади исечкана банана, мед и цимет."},
    {name:"Грчки јогурт со ореви",cat:"Ужина",time:"5",kcal:"250",protein:"18",servings:"1",ingredients:"200 г грчки јогурт\n20 г ореви\n1 лажичка мед",steps:"Стави го јогуртот во чинија.\nДодади ги оревите и медот."},
@@ -562,13 +548,61 @@ function seed(){
    {name:"Салата со туна",cat:"Вечера",time:"10",kcal:"350",protein:"32",servings:"1",ingredients:"1 конзерва туна во сопствен сос\nзелена салата\n1 краставица\n5 чери домати\n1 лажица маслиново масло\nлимон",steps:"Исечи го зеленчукот.\nДодади ја оцедената туна.\nПрелиј со масло и лимон."}
   ].map((r,i)=>({id:"rc"+(i+1)+newId(),...r,photo:null,createdAt:Date.now()+i}));
   const R=i=>rec[i].id;
-  const p=emptyPlan();p.goal=S.plan.goal;
-  const tr={mon:["Гради и рамо",[0,1,2]],tue:["Грб и раце",[3,4,5]],wed:["Кардио и стомак",[9,8]],thu:["Нозе",[6,7,8]],fri:["Цело тело",[0,3,6]],sat:["Лесно кардио",[9]]};
-  DAYS.forEach(([k],i)=>{if(tr[k]){p.title[k]=tr[k][0];p.train[k]=tr[k][1].map(E);}else{p.rest[k]=true;p.title[k]="Одмор";}
-    p.meals[k]={breakfast:R(0),snack:R(1),lunch:R(2),dinner:R(i%2?4:3)};});
-  ex.forEach(e=>{S.exercises.push(e);persist(refs&&refs.ex.doc(e.id),strip(e));});
   rec.forEach(r=>{S.recipes.push(r);persist(refs&&refs.rec.doc(r.id),strip(r));});
-  S.plan=p;savePlan();render();toast("Примерниот план е вчитан");
+  DAYS.forEach(([k],i)=>{S.plan.meals[k]={breakfast:R(0),snack:R(1),lunch:R(2),dinner:R(i%2?4:3)};});
+  savePlan();render();toast("Примерните рецепти се вчитани");
+}
+const clean=u=>{try{const x=new URL(u);x.searchParams.delete("utm_source");x.searchParams.delete("si");return x.toString();}catch(e){return u;}};
+const PROGRAM=[
+ ["mon","PUSH A · Гради, рамена, трицепс",[
+  ["INCLINE BENCH SMITH","Гради","3","8–10","https://youtube.com/shorts/V1xzopQEgwk"],
+  ["PECK DECK","Гради","3","8–12","https://www.youtube.com/shorts/g3T7LsEeDWQ"],
+  ["SHOULDER PRESS MACHINE","Рамо","2","8–10","https://youtube.com/shorts/CkvTfKB-gfs"],
+  ["LATERAL RAISE CABLE","Рамо","2","10–12","https://youtube.com/shorts/iVZe0AJwVhg"],
+  ["TRICEPS PUSHDOWN","Раце","3","8–10","https://youtube.com/shorts/8xT4OwwiACQ"]]],
+ ["tue","LEGS A + ABS · Нозе, стомак",[
+  ["LEG EXTENSION","Нозе","3","10–12","https://youtube.com/shorts/1BIIORHJ2XI"],
+  ["LEG CURL","Нозе","3","10–12","https://youtu.be/aakNLjjm4Qo"],
+  ["LEG PRESS","Нозе","3","10–12","https://www.youtube.com/results?search_query=leg+press+machine+proper+form"],
+  ["CALF RAISES","Нозе","2","12–15","https://www.youtube.com/results?search_query=standing+calf+raises+proper+form"],
+  ["KNEE RAISES","Стомак","2","MAX","https://youtube.com/shorts/UqmbxvOgnX4"]]],
+ ["thu","PULL · Грб, бицепс, задно рамо",[
+  ["LAT PULLDOWN","Грб","3","8–10","https://youtube.com/shorts/guX9Xo2cxOM"],
+  ["CHEST SUPPORTED ROW MACHINE","Грб","3","8–12","https://youtube.com/shorts/IT2lbCsxV0U"],
+  ["BICEPS EZ-BAR PREACHER CURL","Раце","3","8–10","https://youtube.com/shorts/Oj_QnJ4pDq0"],
+  ["BICEPS HAMMER CURLS","Раце","2","10–12","https://youtube.com/shorts/cDKOkTT9OnQ"],
+  ["REVERSE PEC DECK","Рамо","2","12–15","https://www.youtube.com/results?search_query=reverse+pec+deck+proper+form"],
+  ["TRICEPS OVERHEAD CABLE EXTENSION","Раце","2","10–12","https://youtu.be/MegBRxtR14I"]]],
+ ["sat","UPPER + LEGS B · Гради, рамена, нозе, раце",[
+  ["FLAT BENCH PRESS","Гради","3","8–10","https://youtube.com/shorts/EdDqD4aKwxM"],
+  ["MILITARY PRESS SMITH","Рамо","2","8–10","https://www.youtube.com/watch?v=2DJRaKO50a8"],
+  ["ILIAC PULLDOWN","Грб","3","8–10","https://youtube.com/shorts/0P-4zHtxrPg"],
+  ["INCLINE DUMBBELL PRESS","Гради","2","10–12","https://youtube.com/shorts/ou6s32mJgjU"],
+  ["BICEPS BARBELL CURL","Раце","2","8–12","https://youtube.com/shorts/N6paU6TGFWU"],
+  ["TRICEPS CABLE KICKBACK","Раце","2","10–12","https://www.youtube.com/watch?v=ZvF4Oi_6Vtg"],
+  ["GOBLET SQUAT","Нозе","2","10–12","https://www.youtube.com/results?search_query=dumbbell+goblet+squat+proper+form"],
+  ["PLANK","Стомак","2","MAX","https://www.youtube.com/results?search_query=plank+exercise+proper+form"]]]
+];
+function loadProgram(){
+  const byName={};S.exercises.forEach(e=>{byName[e.name.trim().toUpperCase()]=e;});
+  const p=S.plan;let n=0;
+  DAYS.forEach(([k])=>{p.train[k]=[];p.rest[k]=true;p.title[k]="Одмор";});
+  PROGRAM.forEach(([k,title,list],di)=>{
+    p.rest[k]=false;p.title[k]=title;
+    list.forEach(([name,muscle,sets,reps,link],i)=>{
+      let e=byName[name];
+      if(e){e={...e,muscle,sets,reps,link:clean(link)};}
+      else{e={id:"p"+newId()+i,name,muscle,sets,reps,rest:"",notes:"",link:clean(link),video:null,createdAt:Date.now()+di*20+i};n++;}
+      byName[name]=e;upsert(S.exercises,e);persist(refs&&refs.ex.doc(e.id),strip(e));
+      if(!p.train[k].includes(e.id))p.train[k].push(e.id);
+    });
+  });
+  p.program="ppl1";savePlan();render();toast("Програмата е вчитана: 4 тренинзи, "+S.exercises.filter(e=>Object.values(p.train).flat().includes(e.id)).length+" вежби");
+}
+function programCard(){
+  if(S.plan.program==="ppl1")return "";
+  const has=DAYS.some(([k])=>S.plan.train[k].filter(exById).length);
+  return `<div class="card starter pad"><div class="kicker">Твојата програма</div><p>PUSH A (пон) · LEGS A + ABS (вто) · PULL (чет) · UPPER + LEGS B (саб). 24 вежби со серии, повторувања и YouTube видеа. Среда, петок и недела се одмор.</p>${has?`<p class="note">Ќе го замени сегашниот неделен план за тренинг. Оброците остануваат.</p>`:""}<div class="btn-row"><button class="btn btn-primary" data-act="program">Вчитај ја програмата</button></div></div>`;
 }
 
 /* ---------- actions ---------- */
@@ -593,6 +627,7 @@ document.addEventListener("click",ev=>{
     case "close":closeModal();break;
     case "confirm-ok":{const f=confirmFn;closeModal();if(f)f();break;}
     case "seed":seed();break;
+    case "program":{const has=S.plan.program!=="ppl1"&&DAYS.some(([k])=>S.plan.train[k].filter(exById).length);if(has)askConfirm("Сегашниот неделен план за тренинг ќе се замени со твојата програма. Вежбите во библиотеката остануваат.","Вчитај",loadProgram);else loadProgram();break;}
     case "tview":UI.trainView=b.dataset.v;render();break;
     case "fview":UI.foodView=b.dataset.v;render();break;
     case "muscle":UI.muscle=b.dataset.m;render();break;
