@@ -231,7 +231,7 @@ function normPlan(d){const p=emptyPlan();if(!d)return p;DAYS.forEach(([k])=>{
   if(d.title&&typeof d.title[k]==="string")p.title[k]=d.title[k];
   p.rest[k]=!!(d.rest&&d.rest[k]);
   if(d.meals&&d.meals[k]&&typeof d.meals[k]==="object")p.meals[k]={...d.meals[k]};
-});if(typeof d.goal==="number")p.goal=d.goal;if(typeof d.program==="string")p.program=d.program;return p;}
+});if(typeof d.goal==="number")p.goal=d.goal;if(typeof d.program==="string")p.program=d.program;if(typeof d.mealProgram==="string")p.mealProgram=d.mealProgram;return p;}
 
 const S={exercises:[],recipes:[],weights:[],plan:emptyPlan(),logs:{},loaded:false};
 const UI={tab:"today",trainView:"plan",foodView:"plan",planDay:dayIdx(),mealDay:dayIdx(),muscle:"",rcat:""};
@@ -267,7 +267,8 @@ function dayChips(sel,act,counter){
   return `<div class="days" role="group" aria-label="Ден во неделата">${DAYS.map(([k,full,sh],i)=>`<button class="day${i===ti?" today":""}" data-act="${act}" data-i="${i}" aria-pressed="${i===sel}" aria-label="${full}">${sh}<small>${h(counter(k))}</small></button>`).join("")}</div>`;
 }
 function starterCard(){
-  return programCard()+(S.recipes.length?"":`<div class="card pad"><div class="kicker" style="color:var(--food)">Исхрана</div><p style="margin:0">Сè уште нема рецепти. Вчитај 5 примерни рецепти со план за јадење, или додај свои.</p><div class="btn-row"><button class="btn btn-food" data-act="seed">Вчитај примерни рецепти</button><button class="btn" data-act="go" data-tab="food" data-view="lib">Додај свој рецепт</button></div></div>`);
+  const mc=mealCard();
+  return programCard()+mc+(S.recipes.length||mc?"":`<div class="card pad"><div class="kicker" style="color:var(--food)">Исхрана</div><p style="margin:0">Сè уште нема рецепти. Вчитај 5 примерни рецепти со план за јадење, или додај свои.</p><div class="btn-row"><button class="btn btn-food" data-act="seed">Вчитај примерни рецепти</button><button class="btn" data-act="go" data-tab="food" data-view="lib">Додај свој рецепт</button></div></div>`);
 }
 function exSub(e){const p=[];if(e.sets)p.push(e.sets+" × "+(e.reps||"?"));else if(e.reps)p.push(e.reps);if(e.muscle)p.push(e.muscle);if(+e.rest>0)p.push("одмор "+e.rest+" сек");return p.join(" · ");}
 
@@ -346,7 +347,7 @@ function viewFood(){
   const opts=(slotLabel,cur)=>{const pri=S.recipes.filter(r=>r.cat===slotLabel),rest=S.recipes.filter(r=>r.cat!==slotLabel);
     const o=r=>`<option value="${h(r.id)}" ${r.id===cur?"selected":""}>${h(r.name)}${num(r.kcal)?" · "+num(r.kcal)+" kcal":""}</option>`;
     return `<option value="">— ништо —</option>${pri.length?`<optgroup label="${slotLabel}">${pri.map(o).join("")}</optgroup>`:""}${rest.length?`<optgroup label="Други рецепти">${rest.map(o).join("")}</optgroup>`:""}`;};
-  return `${seg}${dayChips(i,"meal-day",kk=>SLOTS.filter(([s])=>recById((S.plan.meals[kk]||{})[s])).length||"–")}
+  return `${seg}${mealCard()}${dayChips(i,"meal-day",kk=>SLOTS.filter(([s])=>recById((S.plan.meals[kk]||{})[s])).length||"–")}
   <div class="sec-head"><h2>${full}</h2><span class="meta num">${k?k+" kcal":""}${p?" · "+p+" г протеин":""}</span></div>
   ${S.recipes.length?`<div class="card pad">${SLOTS.map(([s,lbl])=>{const r=recById(meals[s]);return `<div class="field"><label for="meal-${s}">${lbl}</label><div class="inline"><div class="field"><select id="meal-${s}" data-change="meal" data-slot="${s}">${opts(lbl,meals[s])}</select></div>${r?`<button class="icon-btn" data-act="open-rec" data-id="${h(r.id)}" aria-label="Отвори рецепт">${ICON.chev}</button>`:""}</div></div>`;}).join("")}</div>
    <button class="btn" data-act="copy-meals">Копирај го ова мени во сите денови</button>`
@@ -599,6 +600,51 @@ function loadProgram(){
   });
   p.program="ppl1";savePlan();render();toast("Програмата е вчитана: 4 тренинзи, "+S.exercises.filter(e=>Object.values(p.train).flat().includes(e.id)).length+" вежби");
 }
+const MEALPLAN=[
+ ["mon",[["Овесна каша со јогурт, банана и јајца","Овес 100 g, грчки јогурт 250 g, банана 120 g, 2 јајца, путер од кикирики 20 g, млеко 250 ml",1065,69],
+         ["Пилешки гради со ориз и авокадо","Пилешки гради 200 g, варен ориз 300 g, зеленчук 200 g, маслиново масло 10 g, авокадо 50 g",870,57],
+         ["Лосос со печени компири и cottage cheese","Лосос 200 g, печени компири 400 g, салата 200 g, маслиново масло 10 g, cottage cheese 200 g",1110,72]]],
+ ["tue",[["Јајца со интегрален леб и cottage cheese","3 јајца, интегрален леб 120 g, cottage cheese 200 g, авокадо 50 g, портокал 150 g",900,58],
+         ["Посно мелено говедско со ориз","Посно мелено говедско 200 g, варен ориз 300 g, зеленчук 200 g, маслиново масло 10 g",900,55],
+         ["Тестенини со пилешко и доматен сос","Пилешки гради 200 g, варени тестенини 350 g, доматен сос 150 g, пармезан 15 g, грчки јогурт 150 g",1150,82]]],
+ ["wed",[["Овес со јогурт, боровинки и бадеми","Овес 100 g, грчки јогурт 300 g, боровинки 100 g, банана 120 g, бадеми 20 g",850,48],
+         ["Пилешко со печени компири и леб","Пилешко 200 g, печени компири 400 g, салата 200 g, маслиново масло 15 g, интегрален леб 60 g",950,65],
+         ["Јајца и туна со интегрален леб","3 јајца, туна во вода 120 g, интегрален леб 120 g, cottage cheese 150 g, домат и краставица 200 g",1100,75]]],
+ ["thu",[["Јајца, овес и грчки јогурт","3 јајца, овес 80 g, грчки јогурт 200 g, банана 120 g, путер од кикирики 15 g",900,55],
+         ["Пилешки гради со ориз (350 g)","Пилешки гради 200 g, варен ориз 350 g, зеленчук 200 g, маслиново масло 10 g",950,62],
+         ["Говедско со печени компири и салата","Посно говедско 200 g, печени компири 350 g, салата 200 g, cottage cheese 150 g, маслиново масло 10 g",1150,75]]],
+ ["fri",[["Интегрален леб со јајца и cottage cheese","Интегрален леб 120 g, 3 јајца, cottage cheese 200 g, домат 150 g, јаболко 150 g",850,55],
+         ["Мисиркино месо со ориз","Мисиркино месо 200 g, варен ориз 300 g, зеленчук 200 g, маслиново масло 15 g",900,60],
+         ["Лосос со тестенини и грчки јогурт","Лосос 180 g, варени тестенини 250 g, грчки јогурт 200 g, салата 200 g, маслиново масло 10 g",1150,70]]],
+ ["sat",[["Овес со млеко, јогурт и јајца","Овес 100 g, млеко 250 ml, грчки јогурт 200 g, банана 120 g, 2 јајца, бадеми 15 g",950,58],
+         ["Пилешки гради со ориз (350 g)","Пилешки гради 200 g, варен ориз 350 g, зеленчук 200 g, маслиново масло 10 g",950,62],
+         ["Говедско со компири и cottage cheese","Посно говедско 200 g, печени компири 400 g, cottage cheese 200 g, салата 150 g",1150,78]]],
+ ["sun",[["Јајца со леб, јогурт и авокадо","3 јајца, интегрален леб 100 g, грчки јогурт 200 g, авокадо 50 g, банана 100 g",850,50],
+         ["Пилешко со грав","Пилешко 200 g, варен грав 250 g, салата 200 g, интегрален леб 60 g, маслиново масло 10 g",1000,75],
+         ["Тестенини со туна и доматен сос","Туна 150 g, варени тестенини 250 g, доматен сос 150 g, cottage cheese 200 g, маслиново масло 10 g",1050,70]]]
+];
+function loadMealPlan(){
+  const byName={};S.recipes.forEach(r=>{byName[r.name.trim()]=r;});
+  const slots=[["breakfast","Појадок"],["lunch","Ручек"],["dinner","Вечера"]];
+  MEALPLAN.forEach(([k,meals],di)=>{
+    S.plan.meals[k]={};
+    meals.forEach(([name,ing,kcal,protein],j)=>{
+      const [slot,cat]=slots[j];
+      let r=byName[name];
+      const fields={cat,kcal:String(kcal),protein:String(protein),servings:"1",ingredients:ing.split(",").map(x=>x.trim()).join("\n")};
+      r=r?{...r,...fields}:{id:"m"+newId()+di+j,name,time:"",steps:"",photo:null,createdAt:Date.now()+di*5+j,...fields};
+      if(!byName[name]){byName[name]=r;}
+      byName[name]=r;upsert(S.recipes,r);persist(refs&&refs.rec.doc(r.id),strip(r));
+      S.plan.meals[k][slot]=r.id;
+    });
+  });
+  S.plan.mealProgram="m1";savePlan();render();toast("Планот за исхрана е вчитан за сите 7 дена");
+}
+function mealCard(){
+  if(S.plan.mealProgram==="m1")return "";
+  const has=DAYS.some(([k])=>Object.values(S.plan.meals[k]||{}).some(recById));
+  return `<div class="card pad" style="background:var(--food-soft);border:0"><div class="kicker" style="color:var(--food)">Твојот план за исхрана</div><p style="margin:0">7 дена, по 3 оброци (појадок, ручек, вечера). Околу 2.900–3.050 kcal и 185–198 g протеини на ден, со намирниците и количините.</p>${has?`<p class="note">Ќе ги замени сегашните оброци во планот. Рецептите остануваат.</p>`:""}<div class="btn-row"><button class="btn btn-food" data-act="mealplan">Вчитај го планот за исхрана</button></div></div>`;
+}
 function programCard(){
   if(S.plan.program==="ppl1")return "";
   const has=DAYS.some(([k])=>S.plan.train[k].filter(exById).length);
@@ -627,6 +673,7 @@ document.addEventListener("click",ev=>{
     case "close":closeModal();break;
     case "confirm-ok":{const f=confirmFn;closeModal();if(f)f();break;}
     case "seed":seed();break;
+    case "mealplan":{const has=S.plan.mealProgram!=="m1"&&DAYS.some(([k])=>Object.values(S.plan.meals[k]||{}).some(recById));if(has)askConfirm("Сегашните оброци во планот ќе се заменат со твојот план за исхрана. Рецептите остануваат.","Вчитај",loadMealPlan);else loadMealPlan();break;}
     case "program":{const has=S.plan.program!=="ppl1"&&DAYS.some(([k])=>S.plan.train[k].filter(exById).length);if(has)askConfirm("Сегашниот неделен план за тренинг ќе се замени со твојата програма. Вежбите во библиотеката остануваат.","Вчитај",loadProgram);else loadProgram();break;}
     case "tview":UI.trainView=b.dataset.v;render();break;
     case "fview":UI.foodView=b.dataset.v;render();break;
