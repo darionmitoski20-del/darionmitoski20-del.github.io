@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="mk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0E7466">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Мој тренинг и исхрана</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: one-column phone app — sticky header, today's view first, fixed bottom tab bar. Teal = training, amber = food. */
+  --bg:#F2F5F4; --surface:#FFFFFF; --surface-2:#E9EEEC; --ink:#14201D; --muted:#5B6B66; --line:#D8E0DD;
+  --train:#0E7466; --train-soft:#DCEFEA; --food:#A85F00; --food-soft:#F7E9D3; --on-accent:#FFFFFF;
+  --good:#1D8A4B; --bad:#B93628;
+  --display:"Oswald","Arial Narrow",sans-serif; --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1412; --surface:#16201D; --surface-2:#1F2B27; --ink:#E6EEEB; --muted:#93A39E; --line:#2A3733;
+  --train:#45C4AE; --train-soft:#173832; --food:#EAA544; --food-soft:#382A13; --on-accent:#0D1412;
+  --good:#52C985; --bad:#F06B5B; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0D1412; --surface:#16201D; --surface-2:#1F2B27; --ink:#E6EEEB; --muted:#93A39E; --line:#2A3733;
+  --train:#45C4AE; --train-soft:#173832; --food:#EAA544; --food-soft:#382A13; --on-accent:#0D1412;
+  --good:#52C985; --bad:#F06B5B; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--train);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;margin:0;text-wrap:balance}
+.app{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 10px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line)}
+header.top h1{font-size:22px;text-transform:uppercase}
+header.top .date{color:var(--muted);font-size:13px;font-weight:600;text-align:right}
+.banner{margin:12px 16px 0;padding:10px 12px;border-radius:10px;background:var(--food-soft);color:var(--ink);font-size:13px}
+.banner[hidden]{display:none}
+main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:18px}
+section.block{display:flex;flex-direction:column;gap:10px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sec-head h2{font-size:18px;text-transform:uppercase}
+.sec-head .meta{color:var(--muted);font-size:13px;font-weight:600}
+.kicker{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--train)}
+.food .kicker{color:var(--food)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.list{display:flex;flex-direction:column}
+.list>.item+.item{border-top:1px solid var(--line)}
+.item{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:58px}
+.item .grow{flex:1;min-width:0}
+.item .name{font-weight:700;overflow-wrap:anywhere}
+.item .sub{font-size:13px;color:var(--muted)}
+.item.done .name{text-decoration:line-through;color:var(--muted)}
+.chk{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
+.chk svg{width:16px;height:16px;opacity:0}
+.chk[aria-pressed="true"]{background:var(--train);border-color:var(--train);color:var(--on-accent)}
+.food .chk[aria-pressed="true"]{background:var(--food);border-color:var(--food)}
+.chk[aria-pressed="true"] svg{opacity:1}
+.icon-btn{flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;padding:0;color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn:disabled{opacity:.35;cursor:default}
+.icon-btn.play{background:var(--train-soft);border-color:transparent;color:var(--train)}
+.linkish{background:none;border:0;padding:0;text-align:left;cursor:pointer;width:100%}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;min-height:42px}
+.btn-primary{background:var(--train);border-color:var(--train);color:var(--on-accent)}
+.btn-food{background:var(--food);border-color:var(--food);color:var(--on-accent)}
+.btn-danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.progress{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--train);border-radius:99px;transition:width .3s}
+.food .progress>i{background:var(--food)}
+.empty{padding:18px 14px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.rest-day{padding:18px 14px;display:flex;gap:12px;align-items:center}
+.rest-day b{font-family:var(--display);font-size:20px;text-transform:uppercase;color:var(--train)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:12px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;border-radius:9px;padding:9px;font-weight:700;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.day{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 0 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:800;font-size:13px}
+.day small{font-size:11px;font-weight:600;color:var(--muted)}
+.day[aria-pressed="true"]{background:var(--train);border-color:var(--train);color:var(--on-accent)}
+.day[aria-pressed="true"] small{color:inherit;opacity:.85}
+.food .day[aria-pressed="true"]{background:var(--food);border-color:var(--food)}
+.day.today{box-shadow:inset 0 -3px 0 var(--train)}
+.food .day.today{box-shadow:inset 0 -3px 0 var(--food)}
+label{font-size:13px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px}
+input[type=text],input[type=number],input[type=url],input[type=date],input:not([type]),select,textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:42px}
+textarea{resize:vertical}
+input[type=file]{font-size:13px;max-width:100%}
+.field{display:flex;flex-direction:column}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inline{display:flex;gap:8px;align-items:flex-end}
+.inline .field{flex:1}
+.toggle{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--ink);font-size:14px;margin:0;cursor:pointer}
+.toggle input{width:20px;height:20px;accent-color:var(--train)}
+.pad{padding:14px;display:flex;flex-direction:column;gap:12px}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:104px}
+.tile-card .name{font-weight:800;overflow-wrap:anywhere}
+.tile-card .sub{font-size:12px;color:var(--muted)}
+.tile-card .thumb{margin:-12px -12px 4px;height:96px;border-radius:13px 13px 0 0;background:var(--surface-2) center/cover no-repeat}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:6px;background:var(--train-soft);color:var(--train);align-self:flex-start}
+.tag.food{background:var(--food-soft);color:var(--food)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stat .lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.stat .val{font-family:var(--display);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .val small{font-size:15px;color:var(--muted);font-family:var(--body);font-weight:700;margin-left:3px}
+.stat .val.down{color:var(--good)} .stat .val.up{color:var(--bad)}
+.chart{padding:10px 8px 4px}
+.chart svg{width:100%;height:auto;display:block}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:12px}
+.wk{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--muted)}
+.wk i{width:100%;aspect-ratio:1;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;font-style:normal;font-size:11px;color:var(--muted)}
+.wk.full i{background:var(--train);color:var(--on-accent)}
+.wk.part i{background:var(--train-soft);color:var(--train)}
+.wk.rest i{background:transparent;border:1px dashed var(--line)}
+.wk.now{color:var(--ink)}
+.num{font-variant-numeric:tabular-nums}
+.kcal{font-weight:800;font-variant-numeric:tabular-nums;color:var(--food);white-space:nowrap;font-size:13px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{border:0;background:none;padding:9px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+.tab svg{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--train)}
+.tab[data-tab="food"][aria-current="page"]{color:var(--food)}
+.modal{position:fixed;inset:0;z-index:20;background:rgba(5,10,9,.55);display:flex;align-items:flex-end;justify-content:center}
+.modal[hidden]{display:none}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+@media (min-width:700px){.modal{align-items:center}.sheet{border-radius:18px;max-height:88%}}
+.sheet h2{font-size:22px;text-transform:uppercase}
+.sheet form{display:flex;flex-direction:column;gap:12px}
+.sheet video,.sheet .photo{width:100%;border-radius:12px;background:#000;max-height:360px}
+.sheet .photo{object-fit:cover;background:var(--surface-2)}
+.sheet ol,.sheet ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:-18px;background:var(--bg);padding:10px 0 4px}
+fieldset{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0;display:flex;flex-direction:column;gap:10px}
+legend{font-weight:800;font-size:13px;padding:0 6px}
+.form-msg{margin:0;font-size:13px;font-weight:700;color:var(--bad);min-height:1em}
+.form-msg.ok{color:var(--muted)}
+.facts{display:flex;gap:8px;flex-wrap:wrap}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700}
+.fact span{color:var(--muted);font-weight:600;margin-right:4px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+.toast[hidden]{display:none}
+.starter{background:var(--train-soft);border:0}
+.starter p{margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 id="title">Денес</h1>
+    <div class="date" id="today-date"></div>
+  </header>
+  <div class="banner" id="banner" hidden></div>
+  <main id="main"></main>
+</div>
+
+<nav class="tabs" aria-label="Делови">
+  <div class="in">
+    <button class="tab" data-act="tab" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14l2.5 2.5L16 12"/></svg>Денес</button>
+    <button class="tab" data-act="tab" data-tab="training"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12"/></svg>Тренинг</button>
+    <button class="tab" data-act="tab" data-tab="food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8a2 2 0 0 1-2 2M17 21V3c-2 1.5-3 4-3 7s1 3 3 3"/></svg>Исхрана</button>
+    <button class="tab" data-act="tab" data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 16l4-5 4 3 6-8"/></svg>Напредок</button>
+  </div>
+</nav>
+
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+"use strict";
+const DAYS=[["mon","Понеделник","Пон"],["tue","Вторник","Вто"],["wed","Среда","Сре"],["thu","Четврток","Чет"],["fri","Петок","Пет"],["sat","Сабота","Саб"],["sun","Недела","Нед"]];
+const MONTHS=["јануари","февруари","март","април","мај","јуни","јули","август","септември","октомври","ноември","декември"];
+const MUSCLES=["Гради","Грб","Нозе","Рамо","Раце","Стомак","Кардио","Цело тело"];
+const SLOTS=[["breakfast","Појадок"],["snack","Ужина"],["lunch","Ручек"],["dinner","Вечера"]];
+const RCATS=["Појадок","Ужина","Ручек","Вечера"];
+const MAXB=100*1024*1024;
+const TABS={today:"Денес",training:"Тренинг",food:"Исхрана",progress:"Напредок"};
+
+const $=s=>document.querySelector(s);
+const h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad2=n=>String(n).padStart(2,"0");
+const keyOf=d=>d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
+const todayKey=()=>keyOf(new Date());
+const dayIdx=(d=new Date())=>(d.getDay()+6)%7;
+const parseKey=k=>{const [y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d);};
+const fmtLong=k=>{const d=parseKey(k);return d.getDate()+" "+MONTHS[d.getMonth()]+" "+d.getFullYear();};
+const fmtShort=k=>{const d=parseKey(k);return d.getDate()+" "+MONTHS[d.getMonth()].slice(0,3);};
+const num=v=>{const n=parseFloat(String(v??"").replace(",","."));return isFinite(n)?n:null;};
+const kgFmt=n=>(Math.round(n*10)/10).toLocaleString("mk-MK",{minimumFractionDigits:1,maximumFractionDigits:1});
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const safeLink=u=>/^https?:\/\//i.test(u||"")?u:"";
+const BLOBS={};
+const mediaUrl=m=>!m?"":(m.id?(BLOBS[m.id]||""):(m.localUrl||m.url||""));
+const ICON={
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
+};
+
+function emptyPlan(){const p={train:{},title:{},rest:{},meals:{},goal:null};DAYS.forEach(([k])=>{p.train[k]=[];p.title[k]="";p.rest[k]=false;p.meals[k]={};});return p;}
+function normPlan(d){const p=emptyPlan();if(!d)return p;DAYS.forEach(([k])=>{
+  if(Array.isArray(d.train&&d.train[k]))p.train[k]=d.train[k].filter(x=>typeof x==="string");
+  if(d.title&&typeof d.title[k]==="string")p.title[k]=d.title[k];
+  p.rest[k]=!!(d.rest&&d.rest[k]);
+  if(d.meals&&d.meals[k]&&typeof d.meals[k]==="object")p.meals[k]={...d.meals[k]};
+});if(typeof d.goal==="number")p.goal=d.goal;return p;}
+
+const S={exercises:[],recipes:[],weights:[],plan:emptyPlan(),logs:{},loaded:false};
+const UI={tab:"today",trainView:"plan",foodView:"plan",planDay:dayIdx(),mealDay:dayIdx(),muscle:"",rcat:""};
+let db=null,assets=null,uid=null,refs=null,canUpload=false;
+
+const exById=id=>S.exercises.find(e=>e.id===id);
+const recById=id=>S.recipes.find(r=>r.id===id);
+const logFor=k=>{const l=S.logs[k]||{};return{ex:{...(l.ex||{})},meals:{...(l.meals||{})}};};
+
+/* ---------- saving: one write at a time per document ---------- */
+const Q={};
+function errMsg(e){return e&&e.code==="quota_exceeded"?"Просторот за податоци е полн. Избриши некои стари записи.":"Не успеа зачувувањето. Провери ја врската и обиди се повторно.";}
+function persist(ref,data){if(!ref)return Promise.resolve();const k=ref.path;Q[k]=(Q[k]||Promise.resolve()).then(()=>ref.set(JSON.parse(JSON.stringify(data)))).catch(e=>toast(errMsg(e)));return Q[k];}
+function erase(ref){if(!ref)return Promise.resolve();const k=ref.path;Q[k]=(Q[k]||Promise.resolve()).then(()=>ref.delete()).catch(e=>toast(errMsg(e)));return Q[k];}
+const strip=o=>{const c={...o};delete c.id;return c;};
+async function dropAsset(m){if(m&&m.id&&assets){try{await assets.delete(m.id);}catch(e){}}}
+
+function savePlan(){persist(refs&&refs.plan,S.plan);}
+function upsert(list,obj){const i=list.findIndex(x=>x.id===obj.id);if(i>=0)list[i]=obj;else list.push(obj);}
+
+/* ---------- toast / banner / modal ---------- */
+let tt;
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2600);}
+function setBanner(t){const b=$("#banner");b.textContent=t||"";b.hidden=!t;}
+let confirmFn=null;
+function openModal(html){$("#sheet").innerHTML=html;$("#modal").hidden=false;document.body.style.overflow="hidden";const f=$("#sheet").querySelector("input,select,textarea,button");}
+function closeModal(){const m=$("#modal");m.hidden=true;$("#sheet").querySelectorAll("video").forEach(v=>{try{v.pause();}catch(e){}});$("#sheet").innerHTML="";document.body.style.overflow="";confirmFn=null;}
+function askConfirm(text,okLabel,fn){confirmFn=fn;openModal(`<h2>Потврди</h2><p style="margin:0">${h(text)}</p><div class="actions"><button class="btn" data-act="close">Откажи</button><button class="btn btn-primary" data-act="confirm-ok">${h(okLabel)}</button></div>`);}
+
+/* ---------- views ---------- */
+function dayChips(sel,act,counter){
+  const ti=dayIdx();
+  return `<div class="days" role="group" aria-label="Ден во неделата">${DAYS.map(([k,full,sh],i)=>`<button class="day${i===ti?" today":""}" data-act="${act}" data-i="${i}" aria-pressed="${i===sel}" aria-label="${full}">${sh}<small>${h(counter(k))}</small></button>`).join("")}</div>`;
+}
+function starterCard(){
+  if(S.exercises.length||S.recipes.length)return "";
+  return `<div class="card starter pad"><div class="kicker">Брз почеток</div><p>Сè е празно. Вчитај примерен неделен план со 10 вежби и 5 рецепти, па измени го по своја мерка. Можеш и да почнеш од нула.</p><div class="btn-row"><button class="btn btn-primary" data-act="seed">Вчитај примерен план</button><button class="btn" data-act="go" data-tab="training" data-view="lib">Додај своја вежба</button></div></div>`;
+}
+function exSub(e){const p=[];if(e.sets)p.push(e.sets+" × "+(e.reps||"?"));else if(e.reps)p.push(e.reps);if(e.muscle)p.push(e.muscle);if(e.rest)p.push("одмор "+e.rest+" сек");return p.join(" · ");}
+
+function viewToday(){
+  const tk=todayKey(),di=dayIdx(),[dk,dayName]=DAYS[di];
+  const log=logFor(tk);
+  const ids=S.plan.train[dk].filter(exById);
+  const doneN=ids.filter(id=>log.ex[id]).length;
+  const title=S.plan.title[dk];
+  let train;
+  if(S.plan.rest[dk]) train=`<div class="card rest-day"><b>Ден за одмор</b><span class="note">Опоравувањето е дел од тренингот.</span></div>`;
+  else if(!ids.length) train=`<div class="card empty">Нема вежби во планот за ${dayName.toLowerCase()}.<button class="btn" data-act="go" data-tab="training" data-view="plan" data-day="${di}">Пополни го планот</button></div>`;
+  else train=`<div class="progress" aria-label="Завршени вежби"><i style="width:${Math.round(doneN/ids.length*100)}%"></i></div>
+    <div class="card list">${ids.map(id=>{const e=exById(id),d=!!log.ex[id];const hasV=e.video||safeLink(e.link);
+      return `<div class="item${d?" done":""}"><button class="chk" data-act="tog-ex" data-id="${h(id)}" aria-pressed="${d}" aria-label="Завршено: ${h(e.name)}">${ICON.check}</button>
+      <button class="linkish grow" data-act="open-ex" data-id="${h(id)}"><div class="name">${h(e.name)}</div><div class="sub">${h(exSub(e))}</div></button>
+      ${hasV?`<button class="icon-btn play" data-act="open-ex" data-id="${h(id)}" aria-label="Пушти видео">${ICON.play}</button>`:""}</div>`;}).join("")}</div>`;
+
+  const meals=S.plan.meals[dk]||{};
+  const slots=SLOTS.filter(([s])=>recById(meals[s]));
+  const mealsDone=slots.filter(([s])=>log.meals[s]).length;
+  const kTotal=slots.reduce((a,[s])=>a+(num(recById(meals[s]).kcal)||0),0);
+  const pTotal=slots.reduce((a,[s])=>a+(num(recById(meals[s]).protein)||0),0);
+  const food=!slots.length?`<div class="card empty">Нема оброци во планот за денес.<button class="btn" data-act="go" data-tab="food" data-view="plan" data-day="${di}">Направи план за јадење</button></div>`
+   :`<div class="progress"><i style="width:${Math.round(mealsDone/slots.length*100)}%"></i></div><div class="card list">${slots.map(([s,lbl])=>{const r=recById(meals[s]),d=!!log.meals[s];
+     return `<div class="item${d?" done":""}"><button class="chk" data-act="tog-meal" data-slot="${s}" aria-pressed="${d}" aria-label="Изедено: ${h(r.name)}">${ICON.check}</button>
+     <button class="linkish grow" data-act="open-rec" data-id="${h(r.id)}"><div class="sub">${lbl}</div><div class="name">${h(r.name)}</div></button>${num(r.kcal)?`<span class="kcal">${num(r.kcal)} kcal</span>`:""}</div>`;}).join("")}</div>`;
+
+  const lastW=S.weights[S.weights.length-1];
+  const todayW=S.weights.find(w=>w.id===tk);
+  return `${starterCard()}
+  <section class="block"><div class="sec-head"><div><div class="kicker">Тренинг · ${dayName}</div><h2>${h(title||(S.plan.rest[dk]?"Одмор":"Денешен тренинг"))}</h2></div>${ids.length&&!S.plan.rest[dk]?`<span class="meta num">${doneN}/${ids.length} готово</span>`:""}</div>${train}</section>
+  <section class="block food"><div class="sec-head"><div><div class="kicker">Исхрана</div><h2>Оброци денес</h2></div>${slots.length?`<span class="meta num">${kTotal?kTotal+" kcal":""}${pTotal?" · "+pTotal+" г протеин":""}</span>`:""}</div>${food}</section>
+  <section class="block"><div class="sec-head"><div><div class="kicker">Килажа</div><h2>Измери се</h2></div>${lastW?`<span class="meta num">последно ${kgFmt(lastW.kg)} kg · ${fmtShort(lastW.date)}</span>`:""}</div>
+   <div class="card pad"><div class="inline"><div class="field"><label for="q-kg">Килажа денес (kg)</label><input id="q-kg" inputmode="decimal" placeholder="${lastW?kgFmt(lastW.kg):"на пр. 78,5"}" value="${todayW?kgFmt(todayW.kg):""}"></div><button class="btn btn-primary" data-act="q-weight">Зачувај</button></div></div></section>`;
+}
+
+function viewTraining(){
+  const seg=`<div class="seg"><button data-act="tview" data-v="plan" aria-pressed="${UI.trainView==="plan"}">Неделен план</button><button data-act="tview" data-v="lib" aria-pressed="${UI.trainView==="lib"}">Вежби (${S.exercises.length})</button></div>`;
+  if(UI.trainView==="lib"){
+    const list=S.exercises.filter(e=>!UI.muscle||e.muscle===UI.muscle).sort((a,b)=>a.name.localeCompare(b.name,"mk"));
+    const used=[...new Set(S.exercises.map(e=>e.muscle).filter(Boolean))];
+    return `${seg}<div class="sec-head"><h2>Мои вежби</h2><button class="btn btn-primary" data-act="new-ex">+ Нова вежба</button></div>
+    ${used.length>1?`<div class="chips"><button class="chip" data-act="muscle" data-m="" aria-pressed="${!UI.muscle}">Сите</button>${MUSCLES.filter(m=>used.includes(m)).map(m=>`<button class="chip" data-act="muscle" data-m="${h(m)}" aria-pressed="${UI.muscle===m}">${h(m)}</button>`).join("")}</div>`:""}
+    ${list.length?`<div class="lib">${list.map(e=>`<button class="tile-card" data-act="open-ex" data-id="${h(e.id)}"><span class="tag">${h(e.muscle||"Вежба")}</span><span class="name">${h(e.name)}</span><span class="sub">${h(e.sets?e.sets+" × "+(e.reps||"?"):e.reps||"")}${e.video?" · видео":safeLink(e.link)?" · линк":""}</span></button>`).join("")}</div>`
+      :`<div class="card empty">Сè уште нема вежби. Додај ја првата со име, серии, повторувања и видео.${S.recipes.length?"":`<button class="btn" data-act="seed">Или вчитај примерен план</button>`}</div>`}`;
+  }
+  const i=UI.planDay,[dk,full]=DAYS[i];
+  const ids=S.plan.train[dk].filter(exById);
+  const avail=S.exercises.filter(e=>!ids.includes(e.id)).sort((a,b)=>a.name.localeCompare(b.name,"mk"));
+  return `${seg}${dayChips(i,"plan-day",k=>S.plan.rest[k]?"одмор":(S.plan.train[k].filter(exById).length||"–"))}
+  <div class="card pad">
+    <div class="sec-head"><h2>${full}</h2><label class="toggle" for="plan-rest"><input type="checkbox" id="plan-rest" data-change="plan-rest" ${S.plan.rest[dk]?"checked":""}>Ден за одмор</label></div>
+    <div class="field"><label for="plan-title">Име на тренингот</label><input id="plan-title" data-change="plan-title" maxlength="40" placeholder="на пр. Гради и рамо" value="${h(S.plan.title[dk])}"></div>
+  </div>
+  ${S.plan.rest[dk]?"":`<div class="card list">${ids.length?ids.map((id,j)=>{const e=exById(id);return `<div class="item"><span class="num" style="color:var(--muted);font-weight:800;width:18px">${j+1}</span><button class="linkish grow" data-act="open-ex" data-id="${h(id)}"><div class="name">${h(e.name)}</div><div class="sub">${h(exSub(e))}</div></button>
+     <button class="icon-btn" data-act="plan-up" data-i="${j}" aria-label="Нагоре" ${j===0?"disabled":""}>${ICON.up}</button><button class="icon-btn" data-act="plan-down" data-i="${j}" aria-label="Надолу" ${j===ids.length-1?"disabled":""}>${ICON.down}</button><button class="icon-btn" data-act="plan-rm" data-i="${j}" aria-label="Отстрани од денот">${ICON.x}</button></div>`;}).join(""):`<div class="empty">Нема вежби за ${full.toLowerCase()}.</div>`}</div>
+  ${S.exercises.length?(avail.length?`<div class="inline"><div class="field"><label for="plan-add-sel">Додај вежба во ${full.toLowerCase()}</label><select id="plan-add-sel">${avail.map(e=>`<option value="${h(e.id)}">${h(e.name)}${e.muscle?" ("+h(e.muscle)+")":""}</option>`).join("")}</select></div><button class="btn btn-primary" data-act="plan-add">Додај</button></div>`:`<p class="note">Сите вежби се веќе во овој ден.</p>`)
+   :`<div class="card empty">Прво додај вежби во библиотеката.<button class="btn btn-primary" data-act="go" data-tab="training" data-view="lib">Оди на вежби</button></div>`}
+  <button class="btn" data-act="new-ex">+ Нова вежба во библиотеката</button>`}`;
+}
+
+function viewFood(){
+  const seg=`<div class="seg"><button data-act="fview" data-v="plan" aria-pressed="${UI.foodView==="plan"}">План за јадење</button><button data-act="fview" data-v="lib" aria-pressed="${UI.foodView==="lib"}">Рецепти (${S.recipes.length})</button></div>`;
+  if(UI.foodView==="lib"){
+    const list=S.recipes.filter(r=>!UI.rcat||r.cat===UI.rcat).sort((a,b)=>a.name.localeCompare(b.name,"mk"));
+    return `${seg}<div class="sec-head"><h2>Мои рецепти</h2><button class="btn btn-food" data-act="new-rec">+ Нов рецепт</button></div>
+    ${S.recipes.length?`<div class="chips"><button class="chip" data-act="rcat" data-c="" aria-pressed="${!UI.rcat}">Сите</button>${RCATS.map(c=>`<button class="chip" data-act="rcat" data-c="${c}" aria-pressed="${UI.rcat===c}">${c}</button>`).join("")}</div>`:""}
+    ${list.length?`<div class="lib">${list.map(r=>`<button class="tile-card" data-act="open-rec" data-id="${h(r.id)}">${r.photo?`<span class="thumb" style="background-image:url('${h(mediaUrl(r.photo))}')"></span>`:""}<span class="tag food">${h(r.cat||"Рецепт")}</span><span class="name">${h(r.name)}</span><span class="sub">${[r.time?r.time+" мин":"",num(r.kcal)?num(r.kcal)+" kcal":"",num(r.protein)?num(r.protein)+" г протеин":""].filter(Boolean).join(" · ")}</span></button>`).join("")}</div>`
+      :`<div class="card empty">${S.recipes.length?"Нема рецепти во оваа категорија.":"Сè уште нема рецепти. Додај го првиот со состојки, чекори и слика."}</div>`}`;
+  }
+  const i=UI.mealDay,[dk,full]=DAYS[i];
+  const meals=S.plan.meals[dk]||{};
+  const chosen=SLOTS.map(([s])=>recById(meals[s])).filter(Boolean);
+  const k=chosen.reduce((a,r)=>a+(num(r.kcal)||0),0),p=chosen.reduce((a,r)=>a+(num(r.protein)||0),0);
+  const opts=(slotLabel,cur)=>{const pri=S.recipes.filter(r=>r.cat===slotLabel),rest=S.recipes.filter(r=>r.cat!==slotLabel);
+    const o=r=>`<option value="${h(r.id)}" ${r.id===cur?"selected":""}>${h(r.name)}${num(r.kcal)?" · "+num(r.kcal)+" kcal":""}</option>`;
+    return `<option value="">— ништо —</option>${pri.length?`<optgroup label="${slotLabel}">${pri.map(o).join("")}</optgroup>`:""}${rest.length?`<optgroup label="Други рецепти">${rest.map(o).join("")}</optgroup>`:""}`;};
+  return `${seg}${dayChips(i,"meal-day",kk=>SLOTS.filter(([s])=>recById((S.plan.meals[kk]||{})[s])).length||"–")}
+  <div class="sec-head"><h2>${full}</h2><span class="meta num">${k?k+" kcal":""}${p?" · "+p+" г протеин":""}</span></div>
+  ${S.recipes.length?`<div class="card pad">${SLOTS.map(([s,lbl])=>{const r=recById(meals[s]);return `<div class="field"><label for="meal-${s}">${lbl}</label><div class="inline"><div class="field"><select id="meal-${s}" data-change="meal" data-slot="${s}">${opts(lbl,meals[s])}</select></div>${r?`<button class="icon-btn" data-act="open-rec" data-id="${h(r.id)}" aria-label="Отвори рецепт">${ICON.chev}</button>`:""}</div></div>`;}).join("")}</div>
+   <button class="btn" data-act="copy-meals">Копирај го ова мени во сите денови</button>`
+   :`<div class="card empty">За план за јадење прво додај рецепти.<button class="btn btn-food" data-act="new-rec">+ Нов рецепт</button></div>`}`;
+}
+
+function chartSVG(ws,goal){
+  const W=360,H=210,pl=38,pr=14,pt=14,pb=26;
+  const vals=ws.map(w=>w.kg);if(goal)vals.push(goal);
+  let mn=Math.min(...vals),mx=Math.max(...vals);if(mx-mn<2){mn-=1;mx+=1;}
+  const pd=(mx-mn)*.12;mn=Math.floor(mn-pd);mx=Math.ceil(mx+pd);
+  const t=w=>parseKey(w.date).getTime(),t0=t(ws[0]),t1=t(ws[ws.length-1]),span=t1-t0||1;
+  const X=w=>ws.length===1?pl+(W-pl-pr)/2:pl+(t(w)-t0)/span*(W-pl-pr);
+  const Y=v=>pt+(mx-v)/(mx-mn)*(H-pt-pb);
+  const ticks=[0,1,2,3].map(i=>mn+(mx-mn)*i/3);
+  const pts=ws.map(w=>[X(w),Y(w.kg)]);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area=ws.length>1?line+` L${pts[pts.length-1][0].toFixed(1)} ${H-pb} L${pts[0][0].toFixed(1)} ${H-pb} Z`:"";
+  const last=pts[pts.length-1],lw=ws[ws.length-1];
+  const lx=Math.min(Math.max(last[0],pl+24),W-pr-24);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Графикон на килажата">
+  <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--train)" stop-opacity=".28"/><stop offset="1" stop-color="var(--train)" stop-opacity="0"/></linearGradient></defs>
+  ${ticks.map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${pl-6}" y="${(Y(v)+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="Manrope,sans-serif">${Math.round(v*10)/10}</text>`).join("")}
+  ${goal?`<line x1="${pl}" x2="${W-pr}" y1="${Y(goal).toFixed(1)}" y2="${Y(goal).toFixed(1)}" stroke="var(--food)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${W-pr}" y="${(Y(goal)-5).toFixed(1)}" text-anchor="end" font-size="10" font-weight="700" fill="var(--food)" font-family="Manrope,sans-serif">цел ${kgFmt(goal)}</text>`:""}
+  ${area?`<path d="${area}" fill="url(#ga)"/>`:""}
+  <path d="${line}" fill="none" stroke="var(--train)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+  ${ws.length<=40?pts.slice(0,-1).map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5" fill="var(--surface)" stroke="var(--train)" stroke-width="1.5"/>`).join(""):""}
+  <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5" fill="var(--train)" stroke="var(--surface)" stroke-width="2"/>
+  <text x="${lx.toFixed(1)}" y="${(last[1]-10<pt+8?last[1]+18:last[1]-10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="800" fill="var(--ink)" font-family="Manrope,sans-serif">${kgFmt(lw.kg)}</text>
+  <text x="${pl}" y="${H-8}" font-size="10" fill="var(--muted)" font-family="Manrope,sans-serif">${fmtShort(ws[0].date)}</text>
+  ${ws.length>1?`<text x="${W-pr}" y="${H-8}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="Manrope,sans-serif">${fmtShort(lw.date)}</text>`:""}
+  </svg>`;
+}
+
+function viewProgress(){
+  const ws=S.weights,goal=S.plan.goal;
+  const first=ws[0],last=ws[ws.length-1];
+  const diff=first&&last?last.kg-first.kg:null;
+  const toGoal=goal&&last?last.kg-goal:null;
+  // this week
+  const now=new Date(),mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dayIdx(now));
+  let trained=0,planned=0;
+  const week=DAYS.map(([k,,sh],i)=>{const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i),key=keyOf(d);
+    const ids=S.plan.train[k].filter(exById),log=logFor(key),n=ids.filter(id=>log.ex[id]).length;
+    let cls="",lbl=d.getDate();
+    if(S.plan.rest[k]){cls="rest";}
+    else if(ids.length){planned++;if(n===ids.length){cls="full";trained++;}else if(n>0)cls="part";}
+    if(key===todayKey())cls+=" now";
+    return `<div class="wk ${cls}" title="${DAYS[i][1]}: ${S.plan.rest[k]?"одмор":ids.length?n+"/"+ids.length+" вежби":"без план"}"><i class="num">${lbl}</i>${sh}</div>`;}).join("");
+  const hist=[...ws].reverse();
+  return `<div class="stats">
+   <div class="stat"><div class="lbl">Сегашна</div><div class="val num">${last?kgFmt(last.kg):"–"}<small>kg</small></div></div>
+   <div class="stat"><div class="lbl">Од почеток</div><div class="val num ${diff<0?"down":diff>0?"up":""}">${diff==null?"–":(diff>0?"+":diff<0?"−":"")+kgFmt(Math.abs(diff))}<small>kg</small></div></div>
+   <div class="stat"><div class="lbl">Цел</div><div class="val num">${goal?kgFmt(goal):"–"}<small>kg</small></div></div>
+   <div class="stat"><div class="lbl">До целта</div><div class="val num">${toGoal==null?"–":kgFmt(Math.abs(toGoal))}<small>${toGoal==null?"":toGoal>0?"kg за симнување":toGoal<0?"kg за качување":"kg"}</small></div></div>
+  </div>
+  <section class="block"><div class="sec-head"><div><div class="kicker">Килажа</div><h2>Текот</h2></div>${first?`<span class="meta num">${ws.length} мерења од ${fmtShort(first.date)}</span>`:""}</div>
+   <div class="card chart">${ws.length?chartSVG(ws,goal):`<div class="empty">Внеси ја првата килажа подолу и тука ќе се исцрта графиконот.</div>`}</div></section>
+  <section class="block"><div class="sec-head"><div><div class="kicker">Оваа недела</div><h2>Тренинзи</h2></div><span class="meta num">${trained}/${planned} завршени</span></div>
+   <div class="card week">${week}</div><p class="note">Полно = сите вежби завршени · светло = делумно · испрекинато = одмор</p></section>
+  <section class="block"><div class="sec-head"><h2>Ново мерење</h2></div>
+   <div class="card pad"><div class="grid2"><div class="field"><label for="w-date">Датум</label><input id="w-date" type="date" value="${todayKey()}" max="${todayKey()}"></div><div class="field"><label for="w-kg">Килажа (kg)</label><input id="w-kg" inputmode="decimal" placeholder="на пр. 78,5"></div></div>
+   <div class="field"><label for="w-note">Белешка (по избор)</label><input id="w-note" maxlength="80" placeholder="на пр. наутро, на празен стомак"></div>
+   <button class="btn btn-primary" data-act="add-weight">Зачувај мерење</button>
+   <div class="inline"><div class="field"><label for="goal">Целна килажа (kg)</label><input id="goal" inputmode="decimal" value="${goal?kgFmt(goal):""}" placeholder="на пр. 75"></div><button class="btn" data-act="save-goal">Постави цел</button></div></div></section>
+  ${hist.length?`<section class="block"><div class="sec-head"><h2>Историја</h2></div><div class="card list">${hist.slice(0,60).map((w,i)=>{const prev=hist[i+1];const d=prev?w.kg-prev.kg:null;
+    return `<div class="item"><div class="grow"><div class="name num">${kgFmt(w.kg)} kg</div><div class="sub">${fmtLong(w.date)}${w.note?" · "+h(w.note):""}</div></div>${d!=null&&Math.abs(d)>=.05?`<span class="num" style="font-weight:800;font-size:13px;color:${d<0?"var(--good)":"var(--bad)"}">${d>0?"+":"−"}${kgFmt(Math.abs(d))}</span>`:""}<button class="icon-btn" data-act="del-weight" data-id="${h(w.id)}" aria-label="Избриши мерење">${ICON.x}</button></div>`;}).join("")}</div></section>`:""}`;
+}
+
+const VIEWS={today:viewToday,training:viewTraining,food:viewFood,progress:viewProgress};
+function render(){
+  const main=$("#main");
+  const a=document.activeElement;let keep=null;
+  if(a&&a.id&&main.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){keep={id:a.id,v:a.value};try{keep.s=a.selectionStart;}catch(e){}}
+  $("#title").textContent=TABS[UI.tab];
+  const d=new Date();$("#today-date").textContent=DAYS[dayIdx(d)][1]+", "+d.getDate()+" "+MONTHS[d.getMonth()];
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===UI.tab?"page":"false"));
+  main.className=UI.tab==="food"?"food":"";
+  main.innerHTML=VIEWS[UI.tab]();
+  if(keep){const el=document.getElementById(keep.id);if(el){if(el.tagName!=="SELECT")el.value=keep.v;el.focus();try{if(keep.s!=null)el.setSelectionRange(keep.s,keep.s);}catch(e){}}}
+}
+
+/* ---------- modals: exercise ---------- */
+function exDetail(id){
+  const e=exById(id);if(!e)return;
+  const days=DAYS.filter(([k])=>S.plan.train[k].includes(id)).map(d=>d[2]);
+  const link=safeLink(e.link);
+  openModal(`<div><span class="tag">${h(e.muscle||"Вежба")}</span></div><h2>${h(e.name)}</h2>
+   ${e.video?`<video src="${h(mediaUrl(e.video))}" controls playsinline preload="metadata"></video>`:""}
+   ${link?`<a class="btn" href="${h(link)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;text-align:center">Отвори го видеото (надворешен линк)</a>`:""}
+   ${!e.video&&!link?`<p class="note">Нема видео. Додај го преку „Измени“.</p>`:""}
+   <div class="facts">${e.sets?`<div class="fact"><span>Серии</span>${h(e.sets)}</div>`:""}${e.reps?`<div class="fact"><span>Повт.</span>${h(e.reps)}</div>`:""}${e.rest?`<div class="fact"><span>Одмор</span>${h(e.rest)} сек</div>`:""}<div class="fact"><span>Денови</span>${days.length?days.join(", "):"не е во план"}</div></div>
+   ${e.notes?`<p style="margin:0;white-space:pre-wrap">${h(e.notes)}</p>`:""}
+   <div class="actions"><button class="btn btn-danger" data-act="del-ex" data-id="${h(id)}">Избриши</button><button class="btn" data-act="close">Затвори</button><button class="btn btn-primary" data-act="edit-ex" data-id="${h(id)}">Измени</button></div>`);
+}
+function exForm(id){
+  const e=id?exById(id):null;
+  const uploadOk=canUpload||!db;
+  openModal(`<form id="ex-form" data-id="${h(e?e.id:"")}" novalidate><h2>${e?"Измени вежба":"Нова вежба"}</h2>
+   <div class="field"><label for="f-name">Име на вежбата</label><input id="f-name" maxlength="80" value="${h(e?e.name:"")}" placeholder="на пр. Чучњеви со шипка"></div>
+   <div class="grid2">
+    <div class="field"><label for="f-muscle">Мускулна група</label><select id="f-muscle">${MUSCLES.map(m=>`<option ${e&&e.muscle===m?"selected":""}>${m}</option>`).join("")}</select></div>
+    <div class="field"><label for="f-sets">Серии</label><input id="f-sets" type="number" min="1" max="20" inputmode="numeric" value="${h(e?e.sets:"3")}"></div>
+    <div class="field"><label for="f-reps">Повторувања</label><input id="f-reps" maxlength="20" value="${h(e?e.reps:"10")}" placeholder="10 или 45 сек"></div>
+    <div class="field"><label for="f-rest">Одмор (сек)</label><input id="f-rest" type="number" min="0" max="600" inputmode="numeric" value="${h(e?e.rest:"60")}"></div>
+   </div>
+   <div class="field"><label for="f-notes">Техника и белешки</label><textarea id="f-notes" rows="3" maxlength="1000" placeholder="на пр. грбот исправен, колената не поминуваат пред прстите">${h(e?e.notes:"")}</textarea></div>
+   <fieldset><legend>Видео</legend>
+    ${e&&e.video?`<video src="${h(mediaUrl(e.video))}" controls playsinline preload="metadata" style="width:100%;border-radius:10px;max-height:220px;background:#000"></video><label class="toggle" for="f-novideo"><input type="checkbox" id="f-novideo">Отстрани го ова видео</label>`:""}
+    ${uploadOk?`<div class="field"><label for="f-video">${e&&e.video?"Замени со ново видео":"Прикачи видео од телефонот"} (до 100 MB)</label><input id="f-video" type="file" accept="video/*"></div>`:`<p class="note">Прикачување видеа е достапно само за сопственикот на апликацијата.</p>`}
+    <div class="field"><label for="f-link">или линк до видео (YouTube, Instagram…)</label><input id="f-link" type="url" maxlength="400" value="${h(e?e.link:"")}" placeholder="https://"></div>
+    ${!db?`<p class="note">Видеата прикачени сега се чуваат само додека е отворена страницата.</p>`:""}
+   </fieldset>
+   <p class="form-msg" id="f-msg"></p>
+   <div class="actions"><button type="button" class="btn" data-act="close">Откажи</button><button class="btn btn-primary" type="submit" id="f-save">Зачувај</button></div></form>`);
+}
+async function submitExercise(form){
+  const msg=(t,ok)=>{const m=$("#f-msg");m.textContent=t;m.className="form-msg"+(ok?" ok":"");};
+  const id=form.dataset.id||newId(),old=exById(id);
+  const name=$("#f-name").value.trim();if(!name){msg("Внеси име на вежбата.");$("#f-name").focus();return;}
+  const link=$("#f-link").value.trim();if(link&&!safeLink(link)){msg("Линкот треба да почнува со https://");return;}
+  let video=old?old.video||null:null;
+  const file=$("#f-video")&&$("#f-video").files[0];
+  if(file&&file.size>MAXB){msg("Видеото е поголемо од 100 MB. Скрати го или додај линк наместо тоа.");return;}
+  const btn=$("#f-save");btn.disabled=true;
+  if($("#f-novideo")&&$("#f-novideo").checked){await dropAsset(video);video=null;}
+  if(file){
+    msg("Се прикачува видеото… не ја затворај страницата.",true);
+    try{
+      if(assets){const r=await assets.upload(file);if(video)await dropAsset(video);video={id:r.id};}
+      else video={localUrl:URL.createObjectURL(file)};
+    }catch(e){btn.disabled=false;msg("Прикачувањето не успеа. Обиди се со помало видео или провери ја врската.");return;}
+  }
+  const obj={id,name,muscle:$("#f-muscle").value,sets:$("#f-sets").value.trim(),reps:$("#f-reps").value.trim(),rest:$("#f-rest").value.trim(),notes:$("#f-notes").value.trim(),link,video,createdAt:old?old.createdAt:Date.now()};
+  upsert(S.exercises,obj);
+  persist(refs&&refs.ex.doc(id),strip(video&&video.localUrl?{...obj,video:null}:obj));
+  const isNew=!old;
+  closeModal();
+  if(isNew&&UI.tab==="training"&&UI.trainView==="plan"){const dk=DAYS[UI.planDay][0];if(!S.plan.rest[dk]){S.plan.train[dk].push(id);savePlan();}}
+  render();toast(isNew?"Вежбата е додадена":"Вежбата е зачувана");
+}
+
+/* ---------- modals: recipe ---------- */
+function recDetail(id){
+  const r=recById(id);if(!r)return;
+  const ing=(r.ingredients||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  const steps=(r.steps||"").split("\n").map(s=>s.replace(/^\d+[.)]\s*/,"").trim()).filter(Boolean);
+  openModal(`${r.photo?`<img class="photo" src="${h(mediaUrl(r.photo))}" alt="">`:""}<div><span class="tag food">${h(r.cat||"Рецепт")}</span></div><h2>${h(r.name)}</h2>
+   <div class="facts">${r.time?`<div class="fact"><span>Време</span>${h(r.time)} мин</div>`:""}${r.servings?`<div class="fact"><span>Порции</span>${h(r.servings)}</div>`:""}${num(r.kcal)?`<div class="fact"><span>Калории</span>${num(r.kcal)} kcal</div>`:""}${num(r.protein)?`<div class="fact"><span>Протеин</span>${num(r.protein)} г</div>`:""}</div>
+   ${ing.length?`<h3 style="font-size:16px;text-transform:uppercase">Состојки</h3><ul>${ing.map(x=>`<li>${h(x)}</li>`).join("")}</ul>`:""}
+   ${steps.length?`<h3 style="font-size:16px;text-transform:uppercase">Подготовка</h3><ol>${steps.map(x=>`<li>${h(x)}</li>`).join("")}</ol>`:""}
+   <div class="actions"><button class="btn btn-danger" data-act="del-rec" data-id="${h(id)}">Избриши</button><button class="btn" data-act="close">Затвори</button><button class="btn btn-food" data-act="edit-rec" data-id="${h(id)}">Измени</button></div>`);
+}
+function recForm(id){
+  const r=id?recById(id):null;const uploadOk=canUpload||!db;
+  openModal(`<form id="rec-form" data-id="${h(r?r.id:"")}" novalidate><h2>${r?"Измени рецепт":"Нов рецепт"}</h2>
+   <div class="field"><label for="r-name">Име на јадењето</label><input id="r-name" maxlength="80" value="${h(r?r.name:"")}" placeholder="на пр. Пилешко со ориз"></div>
+   <div class="grid2">
+    <div class="field"><label for="r-cat">Оброк</label><select id="r-cat">${RCATS.map(c=>`<option ${r&&r.cat===c?"selected":""}>${c}</option>`).join("")}</select></div>
+    <div class="field"><label for="r-time">Време (мин)</label><input id="r-time" type="number" min="0" max="600" inputmode="numeric" value="${h(r?r.time:"")}"></div>
+    <div class="field"><label for="r-kcal">Калории (kcal)</label><input id="r-kcal" type="number" min="0" max="5000" inputmode="numeric" value="${h(r?r.kcal:"")}"></div>
+    <div class="field"><label for="r-protein">Протеин (г)</label><input id="r-protein" type="number" min="0" max="500" inputmode="numeric" value="${h(r?r.protein:"")}"></div>
+   </div>
+   <div class="field"><label for="r-serv">Порции</label><input id="r-serv" type="number" min="1" max="20" inputmode="numeric" value="${h(r?r.servings:"1")}"></div>
+   <div class="field"><label for="r-ing">Состојки (секоја во нов ред)</label><textarea id="r-ing" rows="5" maxlength="3000" placeholder="200 г пилешки гради&#10;80 г ориз&#10;1 брокула">${h(r?r.ingredients:"")}</textarea></div>
+   <div class="field"><label for="r-steps">Подготовка (секој чекор во нов ред)</label><textarea id="r-steps" rows="5" maxlength="5000" placeholder="Свари го оризот.&#10;Испечи го месото на тава.">${h(r?r.steps:"")}</textarea></div>
+   <fieldset><legend>Слика</legend>
+    ${r&&r.photo?`<img src="${h(mediaUrl(r.photo))}" alt="" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px"><label class="toggle" for="r-nophoto"><input type="checkbox" id="r-nophoto">Отстрани ја сликата</label>`:""}
+    ${uploadOk?`<div class="field"><label for="r-photo">${r&&r.photo?"Замени ја сликата":"Прикачи слика"} (по избор)</label><input id="r-photo" type="file" accept="image/*"></div>`:`<p class="note">Прикачување слики е достапно само за сопственикот.</p>`}
+   </fieldset>
+   <p class="form-msg" id="r-msg"></p>
+   <div class="actions"><button type="button" class="btn" data-act="close">Откажи</button><button class="btn btn-food" type="submit" id="r-save">Зачувај</button></div></form>`);
+}
+async function submitRecipe(form){
+  const msg=(t,ok)=>{const m=$("#r-msg");m.textContent=t;m.className="form-msg"+(ok?" ok":"");};
+  const id=form.dataset.id||newId(),old=recById(id);
+  const name=$("#r-name").value.trim();if(!name){msg("Внеси име на јадењето.");$("#r-name").focus();return;}
+  let photo=old?old.photo||null:null;
+  const file=$("#r-photo")&&$("#r-photo").files[0];
+  if(file&&file.size>MAXB){msg("Сликата е поголема од 100 MB.");return;}
+  const btn=$("#r-save");btn.disabled=true;
+  if($("#r-nophoto")&&$("#r-nophoto").checked){await dropAsset(photo);photo=null;}
+  if(file){msg("Се прикачува сликата…",true);
+    try{if(assets){const up=await assets.upload(file);if(photo)await dropAsset(photo);photo={id:up.id};}else photo={localUrl:URL.createObjectURL(file)};}
+    catch(e){btn.disabled=false;msg("Прикачувањето не успеа. Обиди се повторно.");return;}}
+  const obj={id,name,cat:$("#r-cat").value,time:$("#r-time").value.trim(),kcal:$("#r-kcal").value.trim(),protein:$("#r-protein").value.trim(),servings:$("#r-serv").value.trim(),ingredients:$("#r-ing").value.trim(),steps:$("#r-steps").value.trim(),photo,createdAt:old?old.createdAt:Date.now()};
+  upsert(S.recipes,obj);
+  persist(refs&&refs.rec.doc(id),strip(photo&&photo.localUrl?{...obj,photo:null}:obj));
+  closeModal();render();toast(old?"Рецептот е зачуван":"Рецептот е додаден");
+}
+
+/* ---------- starter data ---------- */
+function seed(){
+  const ex=[
+   ["Склекови","Гради","3","12","60","Телото е права линија, градите речиси до подот."],
+   ["Потиснување со шипка на клупа","Гради","4","8","90","Лопатките стегнати, шипката се спушта до средината на градите."],
+   ["Рамен потисок со дамбели","Рамо","3","10","75","Седечки, не го извивај грбот."],
+   ["Згибови","Грб","4","6","90","Целосно истегнување долу, брадата над шипката."],
+   ["Веслање со дамбел","Грб","3","10","60","Лактот оди назад кон колкот."],
+   ["Свиткување за бицепс","Раце","3","12","60","Лактите мирни до телото."],
+   ["Чучњеви","Нозе","4","10","90","Петиците на подот, колковите назад."],
+   ["Искорак","Нозе","3","12","60","По 12 за секоја нога."],
+   ["Планк","Стомак","3","45 сек","45","Стомакот и задникот стегнати."],
+   ["Трчање","Кардио","1","20 мин","0","Темпо на кое можеш да зборуваш."]
+  ].map(([name,muscle,sets,reps,rest,notes],i)=>({id:"ex"+(i+1)+newId(),name,muscle,sets,reps,rest,notes,link:"",video:null,createdAt:Date.now()+i}));
+  const E=i=>ex[i].id;
+  const rec=[
+   {name:"Овесна каша со банана",cat:"Појадок",time:"10",kcal:"380",protein:"14",servings:"1",ingredients:"60 г овесни снегулки\n250 мл млеко\n1 банана\n1 лажичка мед\nцимет по вкус",steps:"Стави ги снегулките и млекото во тенџере.\nВари 4–5 минути на тивок оган со мешање.\nДодади исечкана банана, мед и цимет."},
+   {name:"Грчки јогурт со ореви",cat:"Ужина",time:"5",kcal:"250",protein:"18",servings:"1",ingredients:"200 г грчки јогурт\n20 г ореви\n1 лажичка мед",steps:"Стави го јогуртот во чинија.\nДодади ги оревите и медот."},
+   {name:"Пилешки гради со ориз и брокула",cat:"Ручек",time:"30",kcal:"550",protein:"45",servings:"1",ingredients:"180 г пилешки гради\n80 г ориз (суров)\n150 г брокула\n1 лажица маслиново масло\nсол, бибер, лук во прав",steps:"Свари го оризот според упатството.\nЗачини го месото и печи го на тава по 6–7 минути од секоја страна.\nБрокулата свари ја на пареа 5 минути.\nСервирај сè заедно со малку маслиново масло."},
+   {name:"Омлет со зеленчук",cat:"Вечера",time:"15",kcal:"320",protein:"24",servings:"1",ingredients:"3 јајца\n1/2 пиперка\n1 домат\nшака спанаќ\n30 г сирење",steps:"Исечи го зеленчукот и пропржи го 2 минути.\nИзматени ги јајцата и истури ги врз зеленчукот.\nДодади сирење и печи додека не се стегне."},
+   {name:"Салата со туна",cat:"Вечера",time:"10",kcal:"350",protein:"32",servings:"1",ingredients:"1 конзерва туна во сопствен сос\nзелена салата\n1 краставица\n5 чери домати\n1 лажица маслиново масло\nлимон",steps:"Исечи го зеленчукот.\nДодади ја оцедената туна.\nПрелиј со масло и лимон."}
+  ].map((r,i)=>({id:"rc"+(i+1)+newId(),...r,photo:null,createdAt:Date.now()+i}));
+  const R=i=>rec[i].id;
+  const p=emptyPlan();p.goal=S.plan.goal;
+  const tr={mon:["Гради и рамо",[0,1,2]],tue:["Грб и раце",[3,4,5]],wed:["Кардио и стомак",[9,8]],thu:["Нозе",[6,7,8]],fri:["Цело тело",[0,3,6]],sat:["Лесно кардио",[9]]};
+  DAYS.forEach(([k],i)=>{if(tr[k]){p.title[k]=tr[k][0];p.train[k]=tr[k][1].map(E);}else{p.rest[k]=true;p.title[k]="Одмор";}
+    p.meals[k]={breakfast:R(0),snack:R(1),lunch:R(2),dinner:R(i%2?4:3)};});
+  ex.forEach(e=>{S.exercises.push(e);persist(refs&&refs.ex.doc(e.id),strip(e));});
+  rec.forEach(r=>{S.recipes.push(r);persist(refs&&refs.rec.doc(r.id),strip(r));});
+  S.plan=p;savePlan();render();toast("Примерниот план е вчитан");
+}
+
+/* ---------- actions ---------- */
+function setTab(t){UI.tab=t;if(location.hash!=="#"+t){try{history.replaceState(null,"","#"+t);}catch(e){location.hash=t;}}render();window.scrollTo(0,0);}
+function logToggle(kind,key){const tk=todayKey();const l=logFor(tk);l[kind][key]=!l[kind][key];if(!l[kind][key])delete l[kind][key];S.logs[tk]=l;render();persist(refs&&refs.logs.doc(tk),l);}
+function addWeight(date,kg,note){
+  if(kg==null||kg<20||kg>400){toast("Внеси килажа помеѓу 20 и 400 kg.");return false;}
+  const w={id:date,date,kg:Math.round(kg*10)/10,note:note||""};
+  upsert(S.weights,w);S.weights.sort((a,b)=>a.date.localeCompare(b.date));
+  persist(refs&&refs.w.doc(date),strip(w));render();toast("Килажата е зачувана: "+kgFmt(w.kg)+" kg");return true;
+}
+
+document.addEventListener("click",ev=>{
+  const m=$("#modal");if(ev.target===m){closeModal();return;}
+  const b=ev.target.closest("[data-act]");if(!b)return;
+  const a=b.dataset.act,id=b.dataset.id;
+  switch(a){
+    case "tab":setTab(b.dataset.tab);break;
+    case "go":if(b.dataset.tab==="training"){if(b.dataset.view)UI.trainView=b.dataset.view;if(b.dataset.day)UI.planDay=+b.dataset.day;}
+              if(b.dataset.tab==="food"){if(b.dataset.view)UI.foodView=b.dataset.view;if(b.dataset.day)UI.mealDay=+b.dataset.day;}
+              setTab(b.dataset.tab);break;
+    case "close":closeModal();break;
+    case "confirm-ok":{const f=confirmFn;closeModal();if(f)f();break;}
+    case "seed":seed();break;
+    case "tview":UI.trainView=b.dataset.v;render();break;
+    case "fview":UI.foodView=b.dataset.v;render();break;
+    case "muscle":UI.muscle=b.dataset.m;render();break;
+    case "rcat":UI.rcat=b.dataset.c;render();break;
+    case "plan-day":UI.planDay=+b.dataset.i;render();break;
+    case "meal-day":UI.mealDay=+b.dataset.i;render();break;
+    case "tog-ex":logToggle("ex",id);break;
+    case "tog-meal":logToggle("meals",b.dataset.slot);break;
+    case "open-ex":exDetail(id);break;
+    case "new-ex":exForm(null);break;
+    case "edit-ex":exForm(id);break;
+    case "del-ex":{const e=exById(id);if(!e)break;askConfirm(`Да се избрише вежбата ${e.name}? Ќе се отстрани и од неделниот план.`,"Избриши",async()=>{
+        S.exercises=S.exercises.filter(x=>x.id!==id);let ch=false;DAYS.forEach(([k])=>{const n=S.plan.train[k].filter(x=>x!==id);if(n.length!==S.plan.train[k].length){S.plan.train[k]=n;ch=true;}});
+        if(ch)savePlan();erase(refs&&refs.ex.doc(id));render();toast("Вежбата е избришана");await dropAsset(e.video);});break;}
+    case "open-rec":recDetail(id);break;
+    case "new-rec":recForm(null);break;
+    case "edit-rec":recForm(id);break;
+    case "del-rec":{const r=recById(id);if(!r)break;askConfirm(`Да се избрише рецептот ${r.name}? Ќе се отстрани и од планот за јадење.`,"Избриши",async()=>{
+        S.recipes=S.recipes.filter(x=>x.id!==id);let ch=false;DAYS.forEach(([k])=>{const ml=S.plan.meals[k];Object.keys(ml).forEach(s=>{if(ml[s]===id){delete ml[s];ch=true;}});});
+        if(ch)savePlan();erase(refs&&refs.rec.doc(id));render();toast("Рецептот е избришан");await dropAsset(r.photo);});break;}
+    case "plan-add":{const sel=$("#plan-add-sel");if(!sel||!sel.value)break;const dk=DAYS[UI.planDay][0];S.plan.train[dk]=S.plan.train[dk].filter(exById);S.plan.train[dk].push(sel.value);savePlan();render();break;}
+    case "plan-up":case "plan-down":case "plan-rm":{const dk=DAYS[UI.planDay][0];const arr=S.plan.train[dk].filter(exById);const j=+b.dataset.i;
+        if(a==="plan-rm")arr.splice(j,1);else{const t=a==="plan-up"?j-1:j+1;if(t<0||t>=arr.length)break;[arr[j],arr[t]]=[arr[t],arr[j]];}
+        S.plan.train[dk]=arr;savePlan();render();break;}
+    case "copy-meals":{const src=DAYS[UI.mealDay];askConfirm(`Менито од ${src[1].toLowerCase()} ќе се копира во сите 7 дена и ќе ги замени нивните оброци.`,"Копирај",()=>{DAYS.forEach(([k])=>S.plan.meals[k]={...S.plan.meals[src[0]]});savePlan();render();toast("Менито е копирано во сите денови");});break;}
+    case "q-weight":{const v=num($("#q-kg").value);addWeight(todayKey(),v,"");break;}
+    case "add-weight":{const d=$("#w-date").value||todayKey();if(d>todayKey()){toast("Датумот не може да биде во иднина.");break;}if(addWeight(d,num($("#w-kg").value),$("#w-note").value.trim())){}break;}
+    case "del-weight":{const w=S.weights.find(x=>x.id===id);if(!w)break;S.weights=S.weights.filter(x=>x.id!==id);erase(refs&&refs.w.doc(id));render();toast("Мерењето од "+fmtShort(w.date)+" е избришано");break;}
+    case "save-goal":{const g=num($("#goal").value);if($("#goal").value.trim()===""){S.plan.goal=null;savePlan();render();toast("Целта е отстранета");break;}
+        if(g==null||g<20||g>400){toast("Внеси цел помеѓу 20 и 400 kg.");break;}S.plan.goal=Math.round(g*10)/10;savePlan();render();toast("Целта е поставена: "+kgFmt(S.plan.goal)+" kg");break;}
+  }
+});
+document.addEventListener("change",ev=>{
+  const el=ev.target;const c=el.dataset&&el.dataset.change;if(!c)return;
+  if(c==="plan-title"){const dk=DAYS[UI.planDay][0];const v=el.value.trim();if(S.plan.title[dk]!==v){S.plan.title[dk]=v;savePlan();}}
+  if(c==="plan-rest"){const dk=DAYS[UI.planDay][0];S.plan.rest[dk]=el.checked;savePlan();render();}
+  if(c==="meal"){const dk=DAYS[UI.mealDay][0];const s=el.dataset.slot;S.plan.meals[dk]=S.plan.meals[dk]||{};if(el.value)S.plan.meals[dk][s]=el.value;else delete S.plan.meals[dk][s];savePlan();render();}
+});
+document.addEventListener("submit",ev=>{ev.preventDefault();const f=ev.target;if(f.id==="ex-form")submitExercise(f);if(f.id==="rec-form")submitRecipe(f);});
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&!$("#modal").hidden)closeModal();if(ev.key==="Enter"&&ev.target.id==="q-kg"){ev.preventDefault();addWeight(todayKey(),num(ev.target.value),"");}});
+function fromHash(){const t=location.hash.slice(1);if(TABS[t]&&t!==UI.tab){UI.tab=t;render();}}
+window.addEventListener("hashchange",fromHash);
+{const t=location.hash.slice(1);if(TABS[t])UI.tab=t;}
+
+/* ---------- local storage (this browser) ---------- */
+const LS_KEY="trening-v1";
+function localStore(){
+  let data={};try{data=JSON.parse(localStorage.getItem(LS_KEY)||"{}")||{};}catch(e){data={};}
+  const subs=new Set(),meta={fromCache:false,hasPendingWrites:false};
+  const save=()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){throw{code:"quota_exceeded"};}};
+  const notify=()=>subs.forEach(f=>f());
+  const snap=k=>({id:k.split("/").pop(),exists:k in data,data:()=>data[k],metadata:meta});
+  function docRef(path){return{path,
+    set:async d=>{data[path]=JSON.parse(JSON.stringify(d));save();notify();},
+    delete:async()=>{delete data[path];save();notify();},
+    onSnapshot(next){const f=()=>next(snap(path));subs.add(f);f();return()=>subs.delete(f);},
+    collection:c=>colRef(path+"/"+c)};}
+  function colRef(path){
+    const q=ord=>({orderBy:f=>q(f),onSnapshot(next){const f=()=>{
+      let docs=Object.keys(data).filter(k=>k.startsWith(path+"/")&&!k.slice(path.length+1).includes("/")).map(snap);
+      docs.sort(ord?(a,b)=>String(a.data()[ord]).localeCompare(String(b.data()[ord])):(a,b)=>a.id.localeCompare(b.id));
+      next({docs,size:docs.length,empty:!docs.length,metadata:meta});};subs.add(f);f();return()=>subs.delete(f);}});
+    return Object.assign(q(null),{path,doc:id=>docRef(path+"/"+id)});}
+  return{doc:docRef,collection:colRef};
+}
+function openIdb(){return new Promise((res,rej)=>{const r=indexedDB.open("trening-media",1);r.onupgradeneeded=()=>r.result.createObjectStore("files");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function localAssets(){
+  const d=await openIdb();const st=m=>d.transaction("files",m).objectStore("files");
+  await new Promise(res=>{const req=st("readonly").openCursor();req.onsuccess=()=>{const c=req.result;if(c){BLOBS[c.key]=URL.createObjectURL(c.value);c.continue();}else res();};req.onerror=()=>res();});
+  return{
+    upload:file=>new Promise((res,rej)=>{const id="m"+newId();const r=st("readwrite").put(file,id);r.onsuccess=()=>{BLOBS[id]=URL.createObjectURL(file);res({id});};r.onerror=()=>rej(r.error);}),
+    delete:id=>new Promise(res=>{const r=st("readwrite").delete(id);r.onsuccess=r.onerror=()=>{if(BLOBS[id])URL.revokeObjectURL(BLOBS[id]);delete BLOBS[id];res();};})
+  };
+}
+render();
+(async()=>{
+  try{db=localStore();}catch(e){db=null;}
+  try{assets=await localAssets();}catch(e){assets=null;}
+  canUpload=!!assets;
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+  if(!db){S.loaded=true;setBanner("Овој прелистувач не дозволува зачувување. Пробај со Chrome или Safari без приватен режим.");render();return;}
+  const root=db.doc("me/app");
+  refs={plan:db.doc("me/plan"),ex:root.collection("exercises"),rec:root.collection("recipes"),w:root.collection("weights"),logs:root.collection("logs")};
+  const rows=snap=>snap.docs.map(d=>({...d.data(),id:d.id}));
+  const ok=()=>{S.loaded=true;render();};
+  refs.plan.onSnapshot(s=>{S.plan=normPlan(s.exists?s.data():null);ok();});
+  refs.ex.onSnapshot(s=>{S.exercises=rows(s).filter(x=>x&&x.name);ok();});
+  refs.rec.onSnapshot(s=>{S.recipes=rows(s).filter(x=>x&&x.name);ok();});
+  refs.w.orderBy("date").onSnapshot(s=>{S.weights=rows(s).filter(x=>typeof x.kg==="number"&&x.date);ok();});
+  refs.logs.onSnapshot(s=>{const L={};s.docs.forEach(d=>{L[d.id]=d.data();});S.logs=L;ok();});
+})();
+</script>
+</body>
+</html>
